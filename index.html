@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ML Math & Stats Fundamentals</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      svg: { fontCache: 'global' },
+      startup: { typeset: false }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <h1>ML Math</h1>
+      <p class="subtitle">Foundations for Machine Learning</p>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="global-progress"></div>
+      </div>
+      <span class="progress-text" id="global-progress-text">0% complete</span>
+      <button class="vi-toggle active" id="vi-toggle">
+        <span class="toggle-dot"></span> Tiếng Việt
+      </button>
+    </div>
+    <ul id="nav-list"></ul>
+  </nav>
+
+  <main id="content">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">&#9776;</button>
+
+    <!-- Landing page -->
+    <section id="landing" class="landing">
+      <div class="hero">
+        <h1>Mathematics & Statistics<br>for Machine Learning</h1>
+        <p>Master the essential mathematical foundations that power modern ML algorithms.</p>
+        <div class="topic-grid" id="topic-grid"></div>
+      </div>
+    </section>
+
+    <!-- Topic content container -->
+    <section id="topic-view" class="topic-view hidden">
+      <div class="topic-header">
+        <button class="back-btn" id="back-btn">&larr; All Topics</button>
+        <div class="topic-progress-container">
+          <span id="topic-progress-label">0/0 lessons</span>
+          <div class="progress-bar-container small">
+            <div class="progress-bar" id="topic-progress-bar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="lessons-nav" id="lessons-nav"></div>
+      <article id="lesson-content"></article>
+      <div class="lesson-footer" id="lesson-footer">
+        <button class="btn" id="prev-lesson-btn">&larr; Previous</button>
+        <button class="btn primary" id="mark-complete-btn">Mark as Complete</button>
+        <button class="btn" id="next-lesson-btn">Next &rarr;</button>
+      </div>
+    </section>
+
+    <!-- Quiz view -->
+    <section id="quiz-view" class="topic-view hidden">
+      <div class="topic-header">
+        <button class="back-btn" id="quiz-back-btn">&larr; Back to Lesson</button>
+        <h2 id="quiz-title"></h2>
+      </div>
+      <div id="quiz-content"></div>
+      <div class="quiz-results hidden" id="quiz-results">
+        <h3>Results</h3>
+        <p id="quiz-score"></p>
+        <button class="btn primary" id="retry-quiz-btn">Retry Quiz</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/topics.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
