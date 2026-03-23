@@ -1,5 +1,7 @@
+import type { Topic } from './types';
+
 // === Topic Data ===
-const TOPICS = [
+export const TOPICS: Topic[] = [
   // ===================== FOUNDATIONS =====================
   {
     id: 'foundations',

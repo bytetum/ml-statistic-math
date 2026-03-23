@@ -1,0 +1,5 @@
+node_modules/
+dist/
+progress.db
+progress.db-shm
+progress.db-wal
