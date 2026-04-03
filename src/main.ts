@@ -1,6 +1,7 @@
 import { state, loadProgress, markLessonComplete, setCurrentLesson } from './state';
 import { renderSidebar, renderLanding, renderLessonNav, renderLesson, showLanding, closeMobileMenu } from './render';
 import { openQuiz } from './quiz';
+import { initChat } from './chat';
 
 // Navigation events
 document.getElementById('back-btn')!.addEventListener('click', showLanding);
@@ -63,4 +64,5 @@ viToggle.addEventListener('click', () => {
   await loadProgress();
   renderLanding();
   renderSidebar();
+  initChat();
 })();

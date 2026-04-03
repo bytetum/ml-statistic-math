@@ -1,4 +1,4 @@
-import type { ProgressResponse, NoteResponse } from './types';
+import type { ProgressResponse, NoteResponse, AIFeedbackResponse, ChatMessage, ChatResponse } from './types';
 
 async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`/api/${path}`);
@@ -44,6 +44,44 @@ export async function saveQuizResult(topicId: string, lessonId: string, score: n
 export async function saveNote(topicId: string, lessonId: string, content: string): Promise<void> {
   try {
     await apiPost('notes', { topic_id: topicId, lesson_id: lessonId, content });
+  } catch { /* ignore */ }
+}
+
+export async function loadBloomProgressFromServer(): Promise<Record<string, boolean>> {
+  try {
+    const data = await apiGet<Record<string, { completed: boolean }>>('bloom');
+    const progress: Record<string, boolean> = {};
+    for (const [key, val] of Object.entries(data)) {
+      progress[key] = val.completed;
+    }
+    return progress;
+  } catch {
+    return JSON.parse(localStorage.getItem('ml-math-bloom') || '{}');
+  }
+}
+
+export async function saveBloomProgress(topicId: string, lessonId: string, level: number, index: number): Promise<void> {
+  try {
+    await apiPost('bloom', { topic_id: topicId, lesson_id: lessonId, level, activity_index: index });
+  } catch { /* ignore */ }
+}
+
+export async function getAIFeedback(prompt: string, response: string, topicId: string, lessonId: string): Promise<AIFeedbackResponse> {
+  try {
+    return await apiPost<AIFeedbackResponse>('feedback', {
+      prompt,
+      response,
+      topic_id: topicId,
+      lesson_id: lessonId,
+    });
+  } catch {
+    return { rating: 'self_assessed', feedback: 'AI feedback unavailable — self-assessment mode.' };
+  }
+}
+
+export async function deleteBloomProgress(topicId: string, lessonId: string, level: number, index: number): Promise<void> {
+  try {
+    await apiPost('bloom/delete', { topic_id: topicId, lesson_id: lessonId, level, activity_index: index });
   } catch { /* ignore */ }
 }
 

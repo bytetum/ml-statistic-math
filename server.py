@@ -4,7 +4,9 @@
 import json
 import sqlite3
 import os
+import subprocess
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 
@@ -53,6 +55,25 @@ def init_db():
             ended_at    TEXT,
             topic_id    TEXT,
             lesson_id   TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS bloom_progress (
+            topic_id       TEXT NOT NULL,
+            lesson_id      TEXT NOT NULL,
+            level          INTEGER NOT NULL,
+            activity_index INTEGER NOT NULL,
+            completed      INTEGER NOT NULL DEFAULT 1,
+            completed_at   TEXT,
+            PRIMARY KEY (topic_id, lesson_id, level, activity_index)
+        );
+
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic_id    TEXT NOT NULL,
+            lesson_id   TEXT NOT NULL,
+            role        TEXT NOT NULL,
+            content     TEXT NOT NULL,
+            created_at  TEXT NOT NULL
         );
     """)
     conn.commit()
@@ -127,6 +148,29 @@ class APIHandler(SimpleHTTPRequestHandler):
                 conn.close()
                 self.json_response([dict(r) for r in rows])
 
+        elif path == "/api/bloom":
+            conn = get_db()
+            rows = conn.execute("SELECT topic_id, lesson_id, level, activity_index, completed FROM bloom_progress").fetchall()
+            result = {}
+            for r in rows:
+                key = f"{r['topic_id']}/{r['lesson_id']}/{r['level']}/{r['activity_index']}"
+                result[key] = {"completed": bool(r["completed"])}
+            conn.close()
+            self.json_response(result)
+
+        elif path == "/api/chat":
+            params = parse_qs(parsed.query)
+            if "topic_id" in params and "lesson_id" in params:
+                conn = get_db()
+                rows = conn.execute(
+                    "SELECT role, content FROM chat_messages WHERE topic_id=? AND lesson_id=? ORDER BY created_at",
+                    (params["topic_id"][0], params["lesson_id"][0]),
+                ).fetchall()
+                conn.close()
+                self.json_response([dict(r) for r in rows])
+            else:
+                self.json_response([])
+
         elif path == "/api/stats":
             conn = get_db()
             total_lessons = conn.execute("SELECT COUNT(*) as c FROM lessons").fetchone()["c"]
@@ -195,9 +239,124 @@ class APIHandler(SimpleHTTPRequestHandler):
             conn.close()
             self.json_response({"status": "ok"})
 
+        elif path == "/api/bloom":
+            conn = get_db()
+            conn.execute(
+                """INSERT INTO bloom_progress (topic_id, lesson_id, level, activity_index, completed, completed_at)
+                   VALUES (?, ?, ?, ?, 1, ?)
+                   ON CONFLICT(topic_id, lesson_id, level, activity_index) DO UPDATE SET
+                     completed = 1, completed_at = excluded.completed_at""",
+                (data["topic_id"], data["lesson_id"], data["level"], data["activity_index"], now),
+            )
+            conn.commit()
+            conn.close()
+            self.json_response({"status": "ok"})
+
+        elif path == "/api/bloom/delete":
+            conn = get_db()
+            conn.execute(
+                "DELETE FROM bloom_progress WHERE topic_id=? AND lesson_id=? AND level=? AND activity_index=?",
+                (data["topic_id"], data["lesson_id"], data["level"], data["activity_index"]),
+            )
+            conn.commit()
+            conn.close()
+            self.json_response({"status": "ok"})
+
+        elif path == "/api/chat":
+            messages = data.get("messages", [])
+            topic_id = data.get("topic_id", "")
+            lesson_id = data.get("lesson_id", "")
+
+            system_msg = (
+                f"You are a helpful, concise ML math tutor. The student is studying "
+                f"topic '{topic_id}', lesson '{lesson_id}'. "
+                "Answer concisely. Use LaTeX math notation with $ delimiters for inline "
+                "and $$ for display math. If the student is confused, give hints before full answers. "
+                "Keep responses under 300 words unless a longer explanation is needed."
+            )
+
+            conversation = f"System: {system_msg}\n\n"
+            for msg in messages:
+                role = "Student" if msg["role"] == "user" else "Tutor"
+                conversation += f"{role}: {msg['content']}\n\n"
+            conversation += "Tutor:"
+
+            try:
+                result = subprocess.run(
+                    ["codex", "exec", conversation],
+                    capture_output=True, text=True, timeout=30,
+                    env={**os.environ, "NO_COLOR": "1"},
+                )
+                reply = result.stdout.strip()
+                if not reply:
+                    raise ValueError(f"Empty response, stderr: {result.stderr}")
+
+                conn = get_db()
+                # Save user's last message
+                if messages:
+                    last_user = messages[-1]
+                    if last_user["role"] == "user":
+                        conn.execute(
+                            "INSERT INTO chat_messages (topic_id, lesson_id, role, content, created_at) VALUES (?,?,?,?,?)",
+                            (topic_id, lesson_id, "user", last_user["content"], now),
+                        )
+                # Save assistant reply
+                conn.execute(
+                    "INSERT INTO chat_messages (topic_id, lesson_id, role, content, created_at) VALUES (?,?,?,?,?)",
+                    (topic_id, lesson_id, "assistant", reply, now),
+                )
+                conn.commit()
+                conn.close()
+
+                self.json_response({"reply": reply})
+            except Exception as e:
+                print(f"  Chat error: {e}")
+                self.json_response({"reply": "Sorry, I couldn't process that right now. Please try again."})
+
+        elif path == "/api/feedback":
+            prompt_text = data.get("prompt", "")
+            user_response = data.get("response", "")
+
+            ai_prompt = (
+                "You are a concise math/ML tutor. Evaluate the student's response to the given question. "
+                'Reply with JSON only, no markdown fences, no extra text: '
+                '{"rating": "correct"|"partial"|"needs_work", '
+                '"feedback": "1-3 sentence feedback", "hint": "optional hint if needs_work"}\n\n'
+                f"Question: {prompt_text}\n\n"
+                f"Student's response: {user_response}"
+            )
+
+            try:
+                result = subprocess.run(
+                    ["codex", "exec", ai_prompt],
+                    capture_output=True, text=True, timeout=30,
+                    env={**os.environ, "NO_COLOR": "1"},
+                )
+                ai_text = result.stdout.strip()
+                if not ai_text:
+                    raise ValueError(f"Empty response, stderr: {result.stderr}")
+                # Strip markdown fences if present
+                if ai_text.startswith("```"):
+                    ai_text = ai_text.split("\n", 1)[1] if "\n" in ai_text else ai_text[3:]
+                    if ai_text.endswith("```"):
+                        ai_text = ai_text[:-3]
+                    ai_text = ai_text.strip()
+                feedback = json.loads(ai_text)
+                self.json_response({
+                    "rating": feedback.get("rating", "partial"),
+                    "feedback": feedback.get("feedback", ""),
+                    "hint": feedback.get("hint"),
+                })
+            except Exception as e:
+                print(f"  AI feedback error: {e}")
+                self.json_response({
+                    "rating": "self_assessed",
+                    "feedback": "AI feedback unavailable — please try again.",
+                })
+
         elif path == "/api/reset":
             conn = get_db()
-            conn.executescript("DELETE FROM lessons; DELETE FROM quiz_results; DELETE FROM notes; DELETE FROM study_sessions;")
+            conn.executescript("DELETE FROM lessons; DELETE FROM quiz_results; DELETE FROM notes; DELETE FROM study_sessions; DELETE FROM bloom_progress; DELETE FROM chat_messages;")
             conn.commit()
             conn.close()
             self.json_response({"status": "ok", "message": "All progress reset"})
@@ -226,10 +385,14 @@ class APIHandler(SimpleHTTPRequestHandler):
             print(f"  API: {args[0]}")
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+
+
 if __name__ == "__main__":
     init_db()
     port = 3737
-    server = HTTPServer(("localhost", port), APIHandler)
+    server = ThreadedHTTPServer(("localhost", port), APIHandler)
     print(f"\n  ML Math Portal running at http://localhost:{port}")
     print(f"  SQLite database: {DB_PATH}\n")
     try:

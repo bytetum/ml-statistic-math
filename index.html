@@ -77,6 +77,22 @@
     </section>
   </main>
 
+  <button class="chat-toggle-btn" id="chat-toggle-btn">💬 AI Tutor</button>
+
+  <aside id="chat-panel" class="chat-panel">
+    <div class="chat-header">
+      <span>🤖 AI Tutor</span>
+      <button id="chat-close-btn">&times;</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-bubble assistant">Hi! I'm your AI tutor. Ask me anything about the current lesson — I can explain concepts, check your work, or help you brainstorm.</div>
+    </div>
+    <div class="chat-input-area">
+      <textarea id="chat-input" placeholder="Ask about this lesson..." rows="2"></textarea>
+      <button class="btn primary" id="chat-send-btn">Send</button>
+    </div>
+  </aside>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

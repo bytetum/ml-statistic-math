@@ -4,12 +4,54 @@ export interface QuizQuestion {
   answer: number;
 }
 
+export type BloomActivityType = 'choice' | 'numeric' | 'match' | 'order' | 'explain' | 'open';
+
+export interface BloomActivity {
+  type: BloomActivityType;
+  level: number;           // 0-5 (Remember through Create)
+  prompt: string;
+  /** choice: array of option strings */
+  options?: string[];
+  /** choice: correct option index */
+  answer?: number;
+  /** numeric: correct number */
+  correctValue?: number;
+  /** numeric: acceptable tolerance */
+  tolerance?: number;
+  /** match: left items */
+  pairs?: Array<[string, string]>;
+  /** order: correct ordered list */
+  correctOrder?: string[];
+}
+
+export interface HomeworkProblem {
+  id: string;
+  prompt: string;
+  type: 'free-response' | 'numeric' | 'multiple-choice';
+  options?: string[];
+  answer?: number | string;
+  tolerance?: number;
+  hint?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+}
+
 export interface Lesson {
   id: string;
   title: string;
   content: string;
   quiz?: QuizQuestion[];
   interactive?: string;
+  bloom?: BloomActivity[];
+  homework?: HomeworkProblem[];
 }
 
 export interface Topic {
@@ -24,6 +66,7 @@ export interface AppState {
   currentTopic: Topic | null;
   currentLesson: number;
   progress: Record<string, boolean>;
+  bloomProgress: Record<string, boolean>;
 }
 
 export interface ProgressResponse {
@@ -36,6 +79,12 @@ export interface ProgressResponse {
 
 export interface NoteResponse {
   content: string;
+}
+
+export interface AIFeedbackResponse {
+  rating: 'correct' | 'partial' | 'needs_work' | 'self_assessed';
+  feedback: string;
+  hint?: string;
 }
 
 export interface StatsResponse {
