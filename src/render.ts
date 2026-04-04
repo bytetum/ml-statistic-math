@@ -6,6 +6,7 @@ import { openQuiz } from './quiz';
 import { renderBloomSection } from './bloom';
 import { renderHomeworkSection } from './homework';
 import { resetChatForLesson } from './chat';
+import { PAPERS } from './papers';
 
 export function renderSidebar(): void {
   const nav = document.getElementById('nav-list')!;
@@ -52,6 +53,64 @@ export function renderLanding(): void {
     `;
     card.addEventListener('click', () => openTopic(topic.id));
     grid.appendChild(card);
+  });
+
+  // Render paper reading guide
+  renderPapersSection();
+}
+
+function renderPapersSection(): void {
+  const list = document.getElementById('papers-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const tierColors: Record<number, string> = { 1: 'var(--green)', 2: 'var(--accent-light)', 3: 'var(--orange)' };
+
+  PAPERS.forEach(paper => {
+    const readiness = paper.prerequisites.filter(p => isLessonComplete(p.topicId, p.lessonId)).length;
+    const total = paper.prerequisites.length;
+    const pct = total > 0 ? Math.round((readiness / total) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'paper-card';
+    card.innerHTML = `
+      <div class="paper-header">
+        <span class="paper-tier" style="color:${tierColors[paper.tier]};border-color:${tierColors[paper.tier]}">${paper.tierLabel}</span>
+        <span class="paper-year">${paper.year}</span>
+      </div>
+      <h4 class="paper-title"><a href="${paper.url}" target="_blank" rel="noopener">${paper.title}</a></h4>
+      <p class="paper-authors">${paper.authors}</p>
+      <p class="paper-desc">${paper.description}</p>
+      <div class="paper-prereqs">
+        <span class="paper-readiness ${pct === 100 ? 'ready' : pct > 0 ? 'partial' : ''}">${pct}% ready</span>
+        <div class="paper-prereq-list">
+          ${paper.prerequisites.map(p => {
+            const done = isLessonComplete(p.topicId, p.lessonId);
+            return `<span class="paper-prereq ${done ? 'done' : ''}" data-topic="${p.topicId}" data-lesson="${p.lessonId}">${done ? '&#10003;' : '&#9675;'} ${p.label}</span>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    // Click prereq to navigate to that lesson
+    card.querySelectorAll('.paper-prereq').forEach(el => {
+      (el as HTMLElement).style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        const topicId = (el as HTMLElement).dataset.topic!;
+        const lessonId = (el as HTMLElement).dataset.lesson!;
+        const topic = TOPICS.find(t => t.id === topicId);
+        if (!topic) return;
+        const lessonIdx = topic.lessons.findIndex(l => l.id === lessonId);
+        if (lessonIdx < 0) return;
+        openTopic(topicId);
+        setCurrentLesson(lessonIdx);
+        renderLessonNav();
+        renderLesson();
+        window.scrollTo(0, 0);
+      });
+    });
+
+    list.appendChild(card);
   });
 }
 
@@ -149,6 +208,7 @@ export function renderLesson(): void {
       <input type="file" id="notes-img-input" accept="image/*" style="display:none;">
       <span class="notes-toolbar-sep"></span>
       <button class="notes-tool-btn" id="notes-help-btn" title="LaTeX cheat sheet">? Help</button>
+      <button class="notes-tool-btn" id="notes-tana-btn" title="Copy as Tana Paste">📋 Tana</button>
     </div>
     <div id="notes-cheatsheet" class="notes-cheatsheet hidden">
       <div class="cheatsheet-header">
@@ -175,6 +235,26 @@ export function renderLesson(): void {
         <tr class="cs-row" data-cs="$\\in, \\forall, \\exists$"><td><code>$\\in, \\forall, \\exists$</code></td><td>$\\in, \\forall, \\exists$ — set/logic</td></tr>
         <tr class="cs-row" data-cs="$\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$"><td><code>$\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$</code></td><td>matrix</td></tr>
       </table>
+      <div class="cheatsheet-header" style="margin-top:1rem;">
+        <strong>Logarithm & Exponent Cheat Sheet</strong>
+      </div>
+      <table class="cheatsheet-table">
+        <tr><th>What you type</th><th>What you get</th></tr>
+        <tr class="cs-row" data-cs="$\\log x$"><td><code>$\\log x$</code></td><td>$\\log x$ — log (base e in ML)</td></tr>
+        <tr class="cs-row" data-cs="$\\log_2 x$"><td><code>$\\log_2 x$</code></td><td>$\\log_2 x$ — log base 2</td></tr>
+        <tr class="cs-row" data-cs="$\\ln x$"><td><code>$\\ln x$</code></td><td>$\\ln x$ — natural log</td></tr>
+        <tr class="cs-row" data-cs="$\\log_{10} x$"><td><code>$\\log_{10} x$</code></td><td>$\\log_{10} x$ — log base 10</td></tr>
+        <tr class="cs-row" data-cs="$e^x$"><td><code>$e^x$</code></td><td>$e^x$ — exponential</td></tr>
+        <tr class="cs-row" data-cs="$e^{-x^2}$"><td><code>$e^{-x^2}$</code></td><td>$e^{-x^2}$ — Gaussian kernel</td></tr>
+        <tr class="cs-row" data-cs="$a^{m+n}$"><td><code>$a^{m+n}$</code></td><td>$a^{m+n}$ — exponent addition</td></tr>
+      </table>
+      <div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-dim);background:var(--bg-card);padding:0.5rem 0.7rem;border-radius:4px;border-left:3px solid var(--accent);">
+        <strong>Key Log Rules:</strong><br>
+        <code>$\\log(ab) = \\log a + \\log b$</code> — product to sum<br>
+        <code>$\\log(a/b) = \\log a - \\log b$</code> — quotient to difference<br>
+        <code>$\\log(a^n) = n\\log a$</code> — power to multiply<br>
+        <code>$\\ln(e^x) = x$</code> and <code>$e^{\\ln x} = x$</code> — inverse pair
+      </div>
       <div style="margin-top:0.6rem;font-size:0.8rem;color:var(--text-dim);">
         <strong>Tips:</strong> Use <code>$...$</code> for inline math within text. Use <code>$$...$$</code> on its own line for centered display math. Use <code>**bold**</code> and <code>*italic*</code> for text formatting.
       </div>
@@ -228,6 +308,52 @@ export function renderLesson(): void {
       ta.focus();
       ta.selectionStart = ta.selectionEnd = start + insert.length;
       ta.dispatchEvent(new Event('input'));
+    });
+  });
+
+  // Copy as Tana Paste
+  const tanaBtn = notesDiv.querySelector('#notes-tana-btn')!;
+  tanaBtn.addEventListener('click', () => {
+    const ta = document.getElementById('lesson-notes') as HTMLTextAreaElement;
+    const noteText = ta.value.trim();
+    if (!noteText) {
+      (tanaBtn as HTMLElement).textContent = '📋 Empty!';
+      setTimeout(() => { (tanaBtn as HTMLElement).textContent = '📋 Tana'; }, 1500);
+      return;
+    }
+
+    const topicTitle = topic.title;
+    const lessonTitle = lesson.title;
+
+    // Build Tana Paste format
+    const lines = noteText.split('\n');
+    const tanaLines = [
+      '%%tana%%',
+      `- ${lessonTitle} #ml-math-note`,
+      `  - Topic:: ${topicTitle}`,
+      `  - Lesson:: ${lessonTitle}`,
+      `  - Notes`,
+    ];
+    for (const line of lines) {
+      if (line.trim() === '') {
+        continue;
+      }
+      // Preserve images as links
+      const imgMatch = line.match(/!\[([^\]]*)\]\(data:image[^)]+\)/);
+      if (imgMatch) {
+        tanaLines.push(`    - [Embedded image: ${imgMatch[1] || 'uploaded'}]`);
+      } else {
+        tanaLines.push(`    - ${line}`);
+      }
+    }
+
+    const tanaPaste = tanaLines.join('\n');
+    navigator.clipboard.writeText(tanaPaste).then(() => {
+      (tanaBtn as HTMLElement).textContent = '✓ Copied!';
+      setTimeout(() => { (tanaBtn as HTMLElement).textContent = '📋 Tana'; }, 2000);
+    }).catch(() => {
+      (tanaBtn as HTMLElement).textContent = '✗ Failed';
+      setTimeout(() => { (tanaBtn as HTMLElement).textContent = '📋 Tana'; }, 2000);
     });
   });
 
@@ -341,22 +467,43 @@ export function renderLesson(): void {
 }
 
 function renderNotesPreview(text: string, container: HTMLElement): void {
-  // Convert markdown-like syntax to HTML
-  let html = text
-    // Escape HTML (but preserve our markdown)
+  // Protect math blocks from HTML escaping by replacing them with placeholders
+  const mathBlocks: string[] = [];
+  let processed = text;
+
+  // Extract display math $$...$$ first (greedy across lines)
+  processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_match, math) => {
+    mathBlocks.push(`$$${math}$$`);
+    return `\x00MATH${mathBlocks.length - 1}\x00`;
+  });
+
+  // Extract inline math $...$
+  processed = processed.replace(/\$([^\$]+?)\$/g, (_match, math) => {
+    mathBlocks.push(`$${math}$`);
+    return `\x00MATH${mathBlocks.length - 1}\x00`;
+  });
+
+  // Now safely escape HTML in non-math text
+  processed = processed
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // Images: ![alt](src)
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;margin:0.5rem 0;">')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Line breaks
-    .replace(/\n/g, '<br>');
+    .replace(/>/g, '&gt;');
 
-  container.innerHTML = html;
+  // Images: ![alt](src)
+  processed = processed.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
+    '<img src="$2" alt="$1" style="max-width:100%;border-radius:6px;margin:0.5rem 0;">');
+
+  // Bold and italic
+  processed = processed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  processed = processed.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Line breaks
+  processed = processed.replace(/\n/g, '<br>');
+
+  // Restore math blocks
+  processed = processed.replace(/\x00MATH(\d+)\x00/g, (_match, idx) => mathBlocks[parseInt(idx)]);
+
+  container.innerHTML = processed;
 
   if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
     MathJax.typesetPromise([container]).catch(() => {});
