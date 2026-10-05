@@ -6,6 +6,7 @@ export interface Paper {
   tierLabel: string;
   url: string;
   description: string;
+  selfChecks?: Array<{ question: string; answer: string }>;
   prerequisites: Array<{ topicId: string; lessonId: string; label: string }>;
 }
 
@@ -187,6 +188,107 @@ export const PAPERS: Paper[] = [
       { topicId: 'probability', lessonId: 'bayes-theorem', label: 'Bayes\' Theorem' },
       { topicId: 'calculus', lessonId: 'integration', label: 'Integration' },
       { topicId: 'statistics', lessonId: 'mle', label: 'MLE' },
+    ],
+  },
+  // Reading challenges: apply the curriculum to five additional papers.
+  {
+    title: 'Probabilistic Principal Component Analysis',
+    authors: 'Tipping, Bishop',
+    year: 1999,
+    tier: 1,
+    tierLabel: 'Essential',
+    url: 'https://www.microsoft.com/en-us/research/publication/probabilistic-principal-component-analysis/',
+    description: 'Connects PCA to a Gaussian latent-variable model and maximum likelihood. Read the model and maximum-likelihood solution, then test your understanding below.',
+    prerequisites: [
+      { topicId: 'linear-algebra', lessonId: 'eigenvalues', label: 'Eigenvalues & Eigenvectors' },
+      { topicId: 'linear-algebra', lessonId: 'svd-decompositions', label: 'SVD & Decompositions' },
+      { topicId: 'probability', lessonId: 'multivariate-gaussian', label: 'Multivariate Gaussian' },
+      { topicId: 'statistics', lessonId: 'mle', label: 'Maximum Likelihood' },
+    ],
+    selfChecks: [
+      { question: 'For x = Wz + mu + epsilon, with independent z ~ N(0, I) and epsilon ~ N(0, sigma²I), derive the mean and covariance of x.', answer: 'The mean is mu and the covariance is WWᵀ + sigma²I. Independence makes the cross-covariance terms zero.' },
+      { question: 'A sample covariance has eigenvalues 9, 4, 1. Retaining one latent dimension, what is the maximum-likelihood noise variance?', answer: 'The average of the discarded eigenvalues: (4 + 1) / 2 = 2.5.' },
+      { question: 'Why is the loading matrix W not uniquely determined?', answer: 'An orthogonal rotation of the latent coordinates leaves WWᵀ unchanged, so it produces the same marginal distribution of x.' },
+    ],
+  },
+  {
+    title: 'Visualizing Data using t-SNE',
+    authors: 'van der Maaten, Hinton',
+    year: 2008,
+    tier: 1,
+    tierLabel: 'Essential',
+    url: 'https://jmlr.org/papers/v9/vandermaaten08a.html',
+    description: 'Turns pairwise similarities into probability distributions and minimizes KL divergence. Read the high-dimensional affinities and low-dimensional objective.',
+    prerequisites: [
+      { topicId: 'linear-algebra', lessonId: 'norms', label: 'Norms & Distance' },
+      { topicId: 'probability', lessonId: 'distributions', label: 'Distributions' },
+      { topicId: 'information-theory', lessonId: 'cross-entropy-kl', label: 'KL Divergence' },
+      { topicId: 'optimization', lessonId: 'gradient-descent', label: 'Gradient Descent' },
+    ],
+    selfChecks: [
+      { question: 'For one affinity pair, p = 0.2 and q = 0.1. Compute its contribution p ln(p/q) to the objective.', answer: '0.2 ln(2), approximately 0.1386. This is one term; the full objective sums over all pairs.' },
+      { question: 'Why does minimizing KL(P || Q) strongly penalize separating neighbors with large p?', answer: 'If p is large but q is tiny, p ln(p/q) is large. Pairs with tiny p carry less weight, so preserving neighbors is emphasized.' },
+      { question: 'Why use a heavy-tailed Student-t distribution for low-dimensional similarities?', answer: 'Its heavy tails allow moderately similar points to sit farther apart in the embedding, helping alleviate the crowding problem. Distances between visible clusters still need cautious interpretation.' },
+    ],
+  },
+  {
+    title: 'Efficient Estimation of Word Representations in Vector Space',
+    authors: 'Mikolov, Chen, Corrado, Dean',
+    year: 2013,
+    tier: 2,
+    tierLabel: 'Deep Learning',
+    url: 'https://arxiv.org/abs/1301.3781',
+    description: 'Introduces CBOW and Skip-gram word-vector architectures. Focus on prediction direction and hierarchical softmax; negative sampling is developed in a later paper.',
+    prerequisites: [
+      { topicId: 'linear-algebra', lessonId: 'scalars-vectors', label: 'Vectors & Matrices' },
+      { topicId: 'linear-algebra', lessonId: 'norms', label: 'Cosine Similarity' },
+      { topicId: 'foundations', lessonId: 'functions', label: 'Functions' },
+      { topicId: 'complexity', lessonId: 'big-o', label: 'Big-O Complexity' },
+    ],
+    selfChecks: [
+      { question: 'How do the prediction directions differ between CBOW and Skip-gram?', answer: 'CBOW predicts a target word from surrounding context words. Skip-gram predicts surrounding context words from the current word.' },
+      { question: 'Compute the cosine similarity of word vectors [1, 1] and [1, 0].', answer: 'Their dot product is 1 and their norms are sqrt(2) and 1, giving 1/sqrt(2), approximately 0.7071.' },
+      { question: 'For vocabulary size V and dimension D, compare full softmax with a balanced hierarchical softmax for one target prediction.', answer: 'Full softmax evaluates V scores, costing O(VD). A balanced tree follows O(log V) decisions, each costing O(D), giving O(D log V). Actual Huffman paths vary by word frequency.' },
+    ],
+  },
+  {
+    title: 'A Simple Framework for Contrastive Learning of Visual Representations',
+    authors: 'Chen, Kornblith, Norouzi, Hinton',
+    year: 2020,
+    tier: 3,
+    tierLabel: 'Modern ML',
+    url: 'https://proceedings.mlr.press/v119/chen20j.html',
+    description: 'SimCLR learns representations by bringing augmented views of the same image together. Read the framework and NT-Xent contrastive objective.',
+    prerequisites: [
+      { topicId: 'linear-algebra', lessonId: 'norms', label: 'Cosine Similarity' },
+      { topicId: 'foundations', lessonId: 'functions', label: 'Softmax' },
+      { topicId: 'information-theory', lessonId: 'cross-entropy-kl', label: 'Cross-Entropy' },
+      { topicId: 'optimization', lessonId: 'gradient-descent', label: 'Gradient Descent' },
+    ],
+    selfChecks: [
+      { question: 'A batch has N original images and two augmented views per image. How many candidates and negatives does one anchor have?', answer: 'There are 2N - 1 candidates after excluding the anchor itself: one positive and 2N - 2 negatives.' },
+      { question: 'If the positive has similarity 1, two negatives have similarity 0, and temperature is 1, compute the single-anchor NT-Xent loss using natural logs.', answer: 'The positive probability is e/(e + 2). The loss is -ln(e/(e + 2)), approximately 0.5514.' },
+      { question: 'For fixed similarities, what happens to the softmax distribution as temperature decreases?', answer: 'The logits are divided by a smaller positive number, concentrating probability on the highest similarities. A higher-scoring negative becomes more damaging; lower temperature does not always reduce loss.' },
+    ],
+  },
+  {
+    title: 'FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness',
+    authors: 'Dao, Fu, Ermon, Rudra, Ré',
+    year: 2022,
+    tier: 3,
+    tierLabel: 'Modern ML',
+    url: 'https://arxiv.org/abs/2205.14135',
+    description: 'Computes exact attention using tiling and online softmax to reduce memory traffic. Read the algorithm after Attention Is All You Need; it adds hardware-memory concepts beyond the lessons.',
+    prerequisites: [
+      { topicId: 'linear-algebra', lessonId: 'matrix-operations', label: 'Matrix Multiplication' },
+      { topicId: 'complexity', lessonId: 'space-complexity', label: 'Space Complexity' },
+      { topicId: 'complexity', lessonId: 'time-complexity-patterns', label: 'Time Complexity' },
+      { topicId: 'optimization', lessonId: 'numerical-stability', label: 'Numerical Stability' },
+    ],
+    selfChecks: [
+      { question: 'What is the shape of QKᵀ for Q and K of shape N × d? How much float32 storage does just that matrix require when N = 4096?', answer: 'It has shape N × N. Storage is 4096² × 4 bytes = 67,108,864 bytes = 64 MiB, excluding other tensors and gradients.' },
+      { question: 'When combining two score blocks, why must their softmax sums be rescaled to the same running maximum?', answer: 'Each block computed exponentials relative to its own maximum. Rescaling each sum by exp(old maximum - new maximum) puts both on the same scale, yielding the correct combined denominator without overflowing exponentials.' },
+      { question: 'Does FlashAttention make dense attention linear in arithmetic work or approximate its attention weights?', answer: 'Neither. Dense attention still has O(N²d) arithmetic work and is exact up to floating-point differences. Tiling avoids storing the full N × N attention matrix in high-bandwidth memory and reduces memory traffic.' },
     ],
   },
 ];

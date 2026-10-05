@@ -19,6 +19,7 @@ Curriculum aligned with **Mathematics for Machine Learning** (Deisenroth, Faisal
 
 ## Features
 
+- **Paper reading guide** with 17 papers mapped to prerequisite lessons, including five reading challenges with 15 revealable self-check answers
 - **Structured lessons** with MathJax-rendered equations, intuition paragraphs, and worked examples
 - **Bilingual support** (English / Vietnamese terminology)
 - **Quizzes** with scoring and history

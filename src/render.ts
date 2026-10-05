@@ -81,6 +81,18 @@ function renderPapersSection(): void {
       <h4 class="paper-title"><a href="${paper.url}" target="_blank" rel="noopener">${paper.title}</a></h4>
       <p class="paper-authors">${paper.authors}</p>
       <p class="paper-desc">${paper.description}</p>
+      ${paper.selfChecks ? `
+        <details class="paper-checks">
+          <summary>Test your understanding (${paper.selfChecks.length} questions)</summary>
+          <p>Try each question in your lesson notes before revealing the answer. These are self-assessment exercises, not graded results.</p>
+          <ol>${paper.selfChecks.map(check => `
+            <li>
+              <p>${check.question}</p>
+              <details><summary>Reveal answer</summary><p>${check.answer}</p></details>
+            </li>
+          `).join('')}</ol>
+        </details>
+      ` : ''}
       <div class="paper-prereqs">
         <span class="paper-readiness ${pct === 100 ? 'ready' : pct > 0 ? 'partial' : ''}">${pct}% ready</span>
         <div class="paper-prereq-list">
